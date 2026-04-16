@@ -1,0 +1,6 @@
+numpy
+requests
+torch
+transformers
+scipy
+sentence_transformers
