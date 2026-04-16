@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Geospatial Job Tracker</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background: #0f172a;
+      color: #e2e8f0;
+    }
+    header {
+      padding: 20px;
+      text-align: center;
+      background: #020617;
+      border-bottom: 1px solid #1e293b;
+    }
+    h1 { margin: 0; }
+    .container {
+      padding: 20px;
+      max-width: 1100px;
+      margin: auto;
+    }
+    .job {
+      background: #020617;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+    .meta { color: #94a3b8; font-size: 14px; }
+    .tags span {
+      background: #1e293b;
+      padding: 4px 8px;
+      border-radius: 6px;
+      margin-right: 6px;
+      font-size: 12px;
+    }
+    .score {
+      float: right;
+      font-weight: bold;
+    }
+    input {
+      padding: 10px;
+      width: 100%;
+      border-radius: 8px;
+      border: none;
+      margin-bottom: 20px;
+    }
+    .badge {
+      color: #22c55e;
+      font-size: 12px;
+      margin-left: 8px;
+    }
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🌍 Geospatial Job Tracker</h1>
+    <p id="lastUpdate"></p>
+  </header>
+
+  <div class="container">
+    <div class="topbar">
+      <label>
+        <input type="checkbox" id="remoteToggle" /> Remote only
+      </label>
+    </div>
+
+    <input type="text" id="search" placeholder="Search (python, EO, postgis...)" />
+
+    <div id="jobs"></div>
+  </div>
+
+  <script>
+    fetch('jobs.json')
+      .then(res => res.json())
+      .then(data => {
+        jobs = data;
+        displayJobs();
+    });
+
+    const container = document.getElementById("jobs");
+    const searchInput = document.getElementById("search");
+    const remoteToggle = document.getElementById("remoteToggle");
+
+    function displayJobs() {
+      const filter = searchInput.value.toLowerCase();
+      const remoteOnly = remoteToggle.checked;
+
+      container.innerHTML = "";
+
+      jobs
+        .filter(job => {
+          const matchesSearch = (job.title + job.company + job.tags.join(" "))
+            .toLowerCase()
+            .includes(filter);
+          const matchesRemote = !remoteOnly || job.remote;
+          return matchesSearch && matchesRemote;
+        })
+        .sort((a, b) => b.score - a.score)
+        .forEach(job => {
+          const div = document.createElement("div");
+          div.className = "job";
+          div.innerHTML = `
+            <div class="score">${job.score}% fit</div>
+            <h2>${job.title} ${job.isNew ? '<span class="badge">NEW</span>' : ''}</h2>
+            <div class="meta">${job.company} • ${job.location}</div>
+            <div class="tags">${job.tags.map(t => `<span>${t}</span>`).join("")}</div>
+            <br/>
+            <a href="${job.link}" target="_blank">View job →</a>
+          `;
+          container.appendChild(div);
+        });
+    }
+
+    searchInput.addEventListener("input", displayJobs);
+    remoteToggle.addEventListener("change", displayJobs);
+
+    document.getElementById("lastUpdate").innerText =
+      "Last updated: " + new Date().toLocaleDateString();
+
+    displayJobs();
+  </script>
+</body>
+</html>
